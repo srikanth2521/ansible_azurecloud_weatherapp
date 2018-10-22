@@ -1,0 +1,98 @@
+---
+- name: Provision instances
+  hosts: localhost
+  connection: local
+  gather_facts: True
+
+
+  vars_files:
+     - info/azure-credentials.yml
+  tasks:
+  # Creating Resource Group
+  - name: Create Ansible Resourcegroup instances
+    azure_rm_resourcegroup:
+      name: DockerApp
+      force: true
+      state: present
+      location: southindia
+
+  # creating storage account
+  - name: Create Ansible Storage Account instances
+    azure_rm_storageaccount:
+      resource_group: DockerApp
+      name: ansiblesto02
+      account_type: Standard_LRS
+
+  # creating virtual network
+  - name: Create Ansible Virtual Network instances ...
+    azure_rm_virtualnetwork:
+      resource_group: DockerApp
+      name: ansible_vnet_01
+      address_prefixes: "10.10.0.0/16"
+ 
+  # creating virtual subnets
+  - name: Create Ansible Subnet instances ...
+    azure_rm_subnet:
+      resource_group: DockerApp
+      name: ansible_subnet_01
+      address_prefix: "10.10.0.0/24"
+      virtual_network: ansible_vnet_01
+
+  # creating public ip
+  - name: Create Public IP 01
+    azure_rm_publicipaddress:
+      resource_group: DockerApp
+      allocation_method: Static
+      domain_name_label: ansiblevm01
+      name: ansible_pip_01
+
+  # Creating security_group
+  - name: Create NSG with SSH Enabled
+    azure_rm_securitygroup:
+      resource_group: DockerApp
+      name: ansible_nsc_01
+      rules:
+        - name: SSH
+          protocol: Tcp
+          destination_port_range: 22
+          access: Allow
+          priority: 101
+          direction: Inbound
+
+  # Creating network_interface
+  - name: Create NIC with other Parameters (PIP,VNET,SUBNET...)...
+    azure_rm_networkinterface:
+      resource_group: DockerApp
+      name: ansible_nic_01
+      virtual_network: ansible_vnet_01
+      subnet: ansible_subnet_01
+      public_ip_name: ansible_pip_01
+      security_group: ansible_nsc_01
+
+  # creating a virtual machine
+  - name: Launch instances
+    azure_rm_virtualmachine:
+      resource_group: DockerApp
+      name: ansiblevm01
+      vm_size: Standard_A0
+      os_type: Linux
+      storage_account: ansiblesto02
+      storage_container: ansiblevm01
+      storage_blob: os-vm-01.vhd
+      admin_username: "{{admin_username}}"
+      admin_password: "{{admin_password}}"
+      network_interfaces: ansible_nic_01
+      image:
+        offer: UbuntuServer
+        publisher: Canonical
+        sku: '16.04-LTS'
+        version: latest
+
+  # adding vm in host file    
+  - name: Add new vm in host file
+    blockinfile:
+      dest: /etc/ansible/hosts
+      block: |
+        [Azure]
+        ansiblevm01.southindia.cloudapp.azure.com
+    become: true

@@ -1,0 +1,18 @@
+---
+
+- name: Deploying app
+  hosts: Azure
+  connection: ssh
+
+  tasks:
+  - name: Copying docker-compose file
+    copy: src=app1/docker-compose.yml dest=~/home/srikanth2521/
+ 
+  - name: Copying env file
+    copy: src=app1/.env dest=~/home/srikanth2521/
+ 
+
+  - name: Running docker-compose.yml
+    command: sudo docker-compose -f ~/home/srikanth2521/docker-compose.yml up -d
+
+  

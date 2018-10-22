@@ -1,0 +1,18 @@
+version: "2.2"
+services:
+  web:
+    image: srikanth2521/desktop_web
+    env_file: .env
+    ports:
+      - "5002:5000"
+    depends_on:
+      - db
+  db:
+    image: postgres:10
+    environment:
+      - POSTGRES_USER=${postgres_username}
+      - POSTGRES_PASSWORD=${postgres_password}
+      - POSTGRES_DB=${postgres_database}
+    ports:
+      - "5433:5432"
+
